@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id              String             @id @default(uuid())
+  email           String             @unique
+  name            String
+  password        String             // Hashed password for hackathon auth
+  department      String             // e.g. "Sales", "Engineering"
+  role            Role               @default(EMPLOYEE) // EMPLOYEE, MANAGER, ADMIN
+  managerId       String?           
+  manager         Employee?          @relation("ManagerToEmployee", fields: [managerId], references: [id])
+  directReports   Employee[]         @relation("ManagerToEmployee")
+  goals           Goal[]             // Goals owned by the employee
+  goalAssignments GoalAssignment[]   // Shared goals subscribed to by the employee
+  auditEvents     AuditEvent[]       // Audit events triggered by this employee
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+enum Role {
+  EMPLOYEE
+  MANAGER
+  ADMIN
+}
+
+model Cycle {
+  id              String       @id @default(uuid())
+  name            String       // e.g. "2024 Annual", "Q2 2024"
+  startDate       DateTime
+  endDate         DateTime
+  lockDate        DateTime     // Date after which goals cannot be edited without admin unlock
+  checkInWindows  CheckInWindow[]
+  goals           Goal[]
+  createdAt       DateTime     @default(now())
+}
+
+model CheckInWindow {
+  id              String       @id @default(uuid())
+  cycleId         String
+  cycle           Cycle        @relation(fields: [cycleId], references: [id])
+  name            String       // e.g. "Q1 Check-in", "Q2 Check-in"
+  windowStart     DateTime
+  windowEnd       DateTime
+  comments        CheckInComment[]
+}
+
+model Goal {
+  id              String       @id @default(uuid())
+  title           String
+  thrustArea      String       // The category/area
+  uomType         UomType      // MIN, MAX, TIMELINE, ZERO
+  target          Float
+  weightage       Float        // 10 to 100
+  actual          Float?       // Current achievement
+  progressScore   Float?       // Computed based on uomType
+  status          GoalStatus   @default(NOT_STARTED)
+  isShared        Boolean      @default(false)
+  ownerId         String
+  owner           Employee     @relation(fields: [ownerId], references: [id])
+  cycleId         String
+  cycle           Cycle        @relation(fields: [cycleId], references: [id])
+  isLocked        Boolean      @default(false)
+  assignments     GoalAssignment[]
+  auditEvents     AuditEvent[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+enum UomType {
+  MIN
+  MAX
+  TIMELINE
+  ZERO
+}
+
+enum GoalStatus {
+  NOT_STARTED
+  ON_TRACK
+  COMPLETED
+}
+
+model GoalAssignment {
+  id              String       @id @default(uuid())
+  goalId          String
+  goal            Goal         @relation(fields: [goalId], references: [id])
+  subscriberId    String
+  subscriber      Employee     @relation(fields: [subscriberId], references: [id])
+  weightage       Float        // Subscriber-specific weightage
+  createdAt       DateTime     @default(now())
+  
+  @@unique([goalId, subscriberId])
+}
+
+model AuditEvent {
+  id              String       @id @default(uuid())
+  goalId          String
+  goal            Goal         @relation(fields: [goalId], references: [id])
+  actorId         String
+  actor           Employee     @relation(fields: [actorId], references: [id])
+  action          String       // e.g. "UPDATE_TARGET", "ADMIN_UNLOCK", "MANAGER_APPROVE"
+  oldValue        String?
+  newValue        String?
+  reason          String?      // Mandatory for ADMIN_UNLOCK
+  timestamp       DateTime     @default(now())
+}
+
+model CheckInComment {
+  id              String         @id @default(uuid())
+  windowId        String
+  window          CheckInWindow  @relation(fields: [windowId], references: [id])
+  managerId       String
+  employeeId      String
+  comment         String
+  createdAt       DateTime       @default(now())
+}
