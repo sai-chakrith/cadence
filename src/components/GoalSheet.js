@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { toast } from "react-hot-toast";
 
 const UOM_TYPES = ["MIN", "MAX", "TIMELINE", "ZERO"];
 
@@ -35,17 +36,17 @@ export default function GoalSheet() {
 
   const handleSubmit = async () => {
     if (!isTotalValid) {
-      alert("Total weightage must be exactly 100%");
+      toast.error("Total weightage must be exactly 100%.");
       return;
     }
     if (hasMinViolation) {
-      alert("Each goal must have at least 10% weightage.");
+      toast.error("Each goal must have at least 10% weightage.");
       return;
     }
     
     // TODO: Connect to backend API
     setIsLocked(true);
-    alert("Goals submitted and locked for manager approval!");
+    toast.success("Goals submitted and locked for manager approval!");
   };
 
   return (
