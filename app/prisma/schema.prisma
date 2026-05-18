@@ -36,6 +36,7 @@ model Cycle {
   startDate       DateTime
   endDate         DateTime
   lockDate        DateTime     // Date after which goals cannot be edited without admin unlock
+  checkinWindowOpen Boolean     @default(false)
   checkInWindows  CheckInWindow[]
   goals           Goal[]
   createdAt       DateTime     @default(now())
@@ -67,6 +68,8 @@ model Goal {
   cycleId         String
   cycle           Cycle        @relation(fields: [cycleId], references: [id])
   isLocked        Boolean      @default(false)
+  returnComment   String?
+  unlockReason    String?
   assignments     GoalAssignment[]
   auditEvents     AuditEvent[]
   createdAt       DateTime     @default(now())
@@ -81,9 +84,10 @@ enum UomType {
 }
 
 enum GoalStatus {
-  NOT_STARTED
-  ON_TRACK
-  COMPLETED
+  DRAFT
+  SUBMITTED
+  APPROVED
+  RETURNED
 }
 
 model GoalAssignment {
@@ -119,4 +123,26 @@ model CheckInComment {
   employeeId      String
   comment         String
   createdAt       DateTime       @default(now())
+}
+
+enum EmbeddingSource {
+  GOAL
+  AUDIT
+  SUMMARY
+}
+
+model Embedding {
+  id          String           @id @default(uuid())
+  sourceType  EmbeddingSource
+  sourceId    String
+  cycleId     String?
+  content     String
+  embedding   Json
+  dimensions  Int
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([sourceType, sourceId])
+  @@index([cycleId])
 }
