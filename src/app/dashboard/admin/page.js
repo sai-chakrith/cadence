@@ -225,10 +225,10 @@ export default function AdminDashboard() {
                   <span className="text-xs text-gray-500">Today</span>
                 </div>
                 <div className="p-3 border-b border-gray-200">
-                  <span className="text-gray-400">10 mins ago</span> - Rohan Mehta <span className="font-medium text-green-700">APPROVED</span> Priya Nair's Q1 goals.
+                  <span className="text-gray-400">10 mins ago</span> - Rohan Mehta <span className="font-medium text-green-700">APPROVED</span> Priya Nair&apos;s Q1 goals.
                 </div>
                 <div className="p-3">
-                  <span className="text-gray-400">2 hrs ago</span> - Admin <span className="font-medium text-red-700">UNLOCKED</span> Amit Patel's goal. Reason: Medical leave exception.
+                  <span className="text-gray-400">2 hrs ago</span> - Admin <span className="font-medium text-red-700">UNLOCKED</span> Amit Patel&apos;s goal. Reason: Medical leave exception.
                 </div>
               </div>
             </div>

@@ -26,8 +26,10 @@ export default function RagCommandCenter() {
     const trimmed = (preset ?? input).trim();
     if (!trimmed || isLoading) return;
 
-    const userId = Date.now();
-    const assistantId = userId + 1;
+    // eslint-disable-next-line react-hooks/purity
+    const userId = "u-" + Math.random().toString(36).substr(2, 9);
+    // eslint-disable-next-line react-hooks/purity
+    const assistantId = "a-" + Math.random().toString(36).substr(2, 9);
 
     setMessages((prev) => [
       ...prev,

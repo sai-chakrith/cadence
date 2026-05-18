@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { PrismaClient, Role, GoalStatus, UomType } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 const prisma = new PrismaClient();
 

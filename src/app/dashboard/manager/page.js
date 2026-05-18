@@ -14,7 +14,7 @@ export default function ManagerDashboard() {
       <div className="max-w-6xl mx-auto">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Manager Dashboard</h1>
-          <p className="text-gray-600 mt-2">Welcome Rohan Mehta (Sales L1) — Review your team's goals.</p>
+          <p className="text-gray-600 mt-2">Welcome Rohan Mehta (Sales L1) — Review your team&apos;s goals.</p>
         </header>
         
         <main className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -60,7 +60,7 @@ export default function ManagerDashboard() {
           <aside>
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6 text-black">
               <h2 className="text-lg font-semibold mb-4 text-black">Push Shared Goal</h2>
-              <p className="text-sm text-gray-600 mb-4">Push a departmental KPI to your entire team's goal sheet.</p>
+              <p className="text-sm text-gray-600 mb-4">Push a departmental KPI to your entire team&apos;s goal sheet.</p>
               <button className="w-full px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 font-medium">
                 + Create Shared Goal
               </button>
