@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
+import { z } from "zod";
 
 import { authOptions } from "../../../lib/auth";
 import { computeUomScore } from "../../../lib/goal-api";
 import { prisma } from "../../../lib/prisma";
 
-function parseValue(value) {
+const toNumber = (value) => {
+  if (value === null || value === undefined || value === "") return NaN;
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
+  return Number.isFinite(parsed) ? parsed : NaN;
+};
+
+const checkinSchema = z.object({
+  goalId: z.string().min(1),
+  cycleId: z.string().min(1),
+  actual: z.preprocess((value) => toNumber(value), z.number().finite()),
+  checkinComment: z.string().optional()
+});
 
 export async function POST(request) {
   const session = await getServerSession(authOptions);
@@ -17,15 +26,17 @@ export async function POST(request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json().catch(() => null);
-  const goalId = body?.goalId;
-  const cycleId = body?.cycleId;
-  const actual = parseValue(body?.actual);
-  const checkinComment = typeof body?.checkinComment === "string" ? body.checkinComment.trim() : "";
-
-  if (!goalId || !cycleId || actual === null) {
-    return NextResponse.json({ error: "goalId, actual, and cycleId are required" }, { status: 400 });
+  const body = await request.json().catch(() => ({}));
+  const parsed = checkinSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid request body", details: parsed.error.flatten() },
+      { status: 400 }
+    );
   }
+
+  const { goalId, cycleId, actual, checkinComment } = parsed.data;
+  const trimmedComment = checkinComment ? checkinComment.trim() : "";
 
   const cycle = await prisma.cycle.findUnique({ where: { id: cycleId } });
   if (!cycle) {
@@ -69,7 +80,7 @@ export async function POST(request) {
         goalId: goal.id,
         actorId: user.id,
         action: "goal.checkin",
-        newValue: checkinComment || String(actual),
+        newValue: trimmedComment || String(actual),
       },
     });
 

@@ -10,8 +10,9 @@ const DEMO_USERS = {
 };
 
 export const authOptions = {
-  // Demo-friendly default; can be overridden via NEXTAUTH_SECRET.
-  secret: process.env.NEXTAUTH_SECRET || "goalpulse-demo-secret",
+  // Enforce NEXTAUTH_SECRET in production. Fallback only for very basic local dev if needed, 
+  // but better to throw if missing in a real app.
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: "Credentials",

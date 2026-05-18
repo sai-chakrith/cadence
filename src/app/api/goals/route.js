@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
+import { z } from "zod";
 
 import { authOptions } from "../../../lib/auth";
 import { prisma } from "../../../lib/prisma";
@@ -17,6 +18,15 @@ async function getCycleOrNull(cycleId) {
   if (!cycleId) return null;
   return prisma.cycle.findUnique({ where: { id: cycleId } });
 }
+
+const createGoalSchema = z.object({
+  title: z.string().min(1),
+  thrustArea: z.string().min(1),
+  uomType: z.string().min(1),
+  cycleId: z.string().min(1),
+  target: z.coerce.number().finite(),
+  weightage: z.coerce.number().finite()
+});
 
 export async function GET(request) {
   const session = await getServerSession(authOptions);
@@ -53,17 +63,21 @@ export async function POST(request) {
     return NextResponse.json({ error: "Only employees can create goals" }, { status: 403 });
   }
 
-  const body = await request.json().catch(() => null);
-  const title = clearText(body?.title);
-  const thrustArea = clearText(body?.thrustArea);
-  const uomType = clearText(body?.uomType).toUpperCase();
-  const cycleId = clearText(body?.cycleId);
-  const target = Number(body?.target);
-  const weightage = Number(body?.weightage);
-
-  if (!title || !thrustArea || !cycleId || !uomType) {
-    return NextResponse.json({ error: "title, thrustArea, uomType, target, weightage, and cycleId are required" }, { status: 400 });
+  const body = await request.json().catch(() => ({}));
+  const parsed = createGoalSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid request body", details: parsed.error.flatten() },
+      { status: 400 }
+    );
   }
+
+  const title = clearText(parsed.data.title);
+  const thrustArea = clearText(parsed.data.thrustArea);
+  const uomType = clearText(parsed.data.uomType).toUpperCase();
+  const cycleId = clearText(parsed.data.cycleId);
+  const target = parsed.data.target;
+  const weightage = parsed.data.weightage;
 
   if (!["MIN", "MAX", "TIMELINE", "ZERO"].includes(uomType)) {
     return NextResponse.json({ error: "uomType must be one of MIN, MAX, TIMELINE, ZERO" }, { status: 400 });
@@ -95,8 +109,8 @@ export async function POST(request) {
   }
 
   const totalWeightage = existingGoals.reduce((sum, goal) => sum + Number(goal.weightage || 0), 0) + weightage;
-  if (Math.abs(totalWeightage - 100) > 0.01) {
-    return NextResponse.json({ error: "Total weightage across all employee goals must equal 100" }, { status: 400 });
+  if (totalWeightage > 100.01) {
+    return NextResponse.json({ error: "Total weightage across all goals cannot exceed 100" }, { status: 400 });
   }
 
   const goal = await prisma.$transaction(async (tx) => {

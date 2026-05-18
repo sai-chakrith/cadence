@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const DEMO_SECRET = process.env.NEXTAUTH_SECRET || "goalpulse-demo-secret";
+const SECRET = process.env.NEXTAUTH_SECRET;
 
 export async function middleware(req) {
-  const token = await getToken({ req, secret: DEMO_SECRET });
+  if (!SECRET) {
+    console.error("CRITICAL: NEXTAUTH_SECRET is not set in environment.");
+    return NextResponse.next(); // Or redirect to an error page
+  }
+  const token = await getToken({ req, secret: SECRET });
   if (token) return NextResponse.next();
 
   const callbackUrl = `${req.nextUrl.pathname}${req.nextUrl.search}`;
