@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "../../../../lib/prisma";
 import { embedText } from "../../../../lib/embeddings";
 
@@ -33,12 +34,25 @@ const buildAuditContent = (event) => {
   ].join(". ");
 };
 
+const rebuildSchema = z.object({
+  limit: z.number().int().min(1).max(200).optional(),
+  cycleId: z.string().nullable().optional()
+});
+
 export async function POST(request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const limit = Number(body?.limit || 50);
-    const cappedLimit = Number.isNaN(limit) ? 50 : Math.min(limit, 200);
-    const cycleId = body?.cycleId || null;
+    const parsed = rebuildSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request body", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const limit = parsed.data.limit ?? 50;
+    const cappedLimit = Math.min(limit, 200);
+    const cycleId = parsed.data.cycleId ?? null;
 
     const cycle = cycleId
       ? await prisma.cycle.findUnique({ where: { id: cycleId } })
@@ -107,6 +121,12 @@ export async function POST(request) {
         }
       });
 
+      await prisma.$executeRaw`
+        UPDATE "Embedding"
+        SET vector = ${embeddingResult.vector}::vector
+        WHERE "sourceType" = 'GOAL' AND "sourceId" = ${goal.id}
+      `;
+
       goalsIndexed += 1;
     }
 
@@ -148,6 +168,12 @@ export async function POST(request) {
           cycleId: cycle.id
         }
       });
+
+      await prisma.$executeRaw`
+        UPDATE "Embedding"
+        SET vector = ${embeddingResult.vector}::vector
+        WHERE "sourceType" = 'AUDIT' AND "sourceId" = ${event.id}
+      `;
 
       auditsIndexed += 1;
     }

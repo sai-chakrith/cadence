@@ -1,6 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts";
 
 const SUGGESTIONS = [
   "Show Q2 completion dashboard for Sales",
@@ -10,6 +23,84 @@ const SUGGESTIONS = [
   "Show goal distribution by thrust area for Engineering"
 ];
 
+const CHART_COLORS = ["#6D28D9", "#14B8A6", "#F97316", "#0EA5E9", "#22C55E"];
+
+const parseChartBlocks = (rawText) => {
+  const charts = [];
+  const cleaned = rawText.replace(/```chart\s*([\s\S]*?)```/g, (match, jsonText) => {
+    try {
+      const chart = JSON.parse(jsonText);
+      charts.push(chart);
+      return "";
+    } catch (error) {
+      return match;
+    }
+  }).trim();
+
+  return { text: cleaned || rawText, charts };
+};
+
+const renderChart = (chart, index) => {
+  const labels = Array.isArray(chart?.labels) ? chart.labels : [];
+  const data = Array.isArray(chart?.data) ? chart.data : [];
+  const dataPoints = labels.map((label, idx) => ({
+    label,
+    value: Number(data[idx]) || 0
+  }));
+
+  if (!dataPoints.length) {
+    return (
+      <div key={`chart-empty-${index}`} className="mt-3 text-xs text-gray-500">
+        Chart data unavailable.
+      </div>
+    );
+  }
+
+  const title = chart?.title ? (
+    <p className="text-xs font-semibold text-gray-600 mb-2">{chart.title}</p>
+  ) : null;
+
+  if (chart?.type === "pie" || chart?.type === "donut") {
+    const innerRadius = chart.type === "donut" ? 50 : 0;
+    return (
+      <div key={`chart-${index}`} className="mt-3">
+        {title}
+        <div className="h-56">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={dataPoints} dataKey="value" nameKey="label" innerRadius={innerRadius} outerRadius={80}>
+                {dataPoints.map((entry, idx) => (
+                  <Cell key={`cell-${idx}`} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div key={`chart-${index}`} className="mt-3">
+      {title}
+      <div className="h-56">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={dataPoints} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="label" tick={{ fontSize: 10 }} />
+            <YAxis tick={{ fontSize: 10 }} />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="value" fill={CHART_COLORS[0]} radius={[6, 6, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+};
+
 export default function RagCommandCenter() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -18,7 +109,8 @@ export default function RagCommandCenter() {
       id: 1,
       role: "assistant",
       text: "Welcome to the RAG command center. Ask me about completion rates, escalations, or audit trails.",
-      facts: []
+      facts: [],
+      charts: []
     }
   ]);
 
@@ -52,18 +144,19 @@ export default function RagCommandCenter() {
 
       const data = await response.json();
       const answer = data.answer || "I could not find an answer for that yet.";
+      const parsed = parseChartBlocks(answer);
       const facts = Array.isArray(data.facts) ? data.facts : [];
 
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === assistantId ? { ...msg, text: answer, facts } : msg
+          msg.id === assistantId ? { ...msg, text: parsed.text, facts, charts: parsed.charts } : msg
         )
       );
     } catch (error) {
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantId
-            ? { ...msg, text: "I could not reach the analytics service. Try again shortly.", facts: [] }
+            ? { ...msg, text: "I could not reach the analytics service. Try again shortly.", facts: [], charts: [] }
             : msg
         )
       );
@@ -105,6 +198,11 @@ export default function RagCommandCenter() {
                       </li>
                     ))}
                   </ul>
+                )}
+                {message.charts?.length > 0 && (
+                  <div className="mt-3 space-y-4">
+                    {message.charts.map((chart, index) => renderChart(chart, index))}
+                  </div>
                 )}
               </div>
             </div>
