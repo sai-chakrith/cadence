@@ -61,7 +61,7 @@ model Goal {
   weightage       Float        // 10 to 100
   actual          Float?       // Current achievement
   progressScore   Float?       // Computed based on uomType
-  status          GoalStatus   @default(NOT_STARTED)
+  status          GoalStatus   @default(DRAFT)
   isShared        Boolean      @default(false)
   ownerId         String
   owner           Employee     @relation(fields: [ownerId], references: [id])

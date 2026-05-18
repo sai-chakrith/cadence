@@ -4,12 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
+    "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
+    "prisma": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "next": "16.2.6",
     "next-auth": "^4.24.14",
@@ -20,7 +22,6 @@
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
-    "prisma": "^6.0.0",
     "tailwindcss": "^4"
   },
   "prisma": {
